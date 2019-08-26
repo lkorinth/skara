@@ -647,6 +647,18 @@ public class GitRepository implements Repository {
     }
 
     @Override
+    public Optional<Hash[]> resolveExpression(String ref) {
+        try (var p = capture("git", "rev-parse", ref)) {
+            var res = p.await();
+            return (res.status() == 0 && res.stdout().size() == 2)
+                ? Optional.of(new Hash[]{new Hash(res.stdout().get(0)), new Hash(res.stdout().get(1).substring(1))})
+                : Optional.empty();
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
     public Branch currentBranch() throws IOException {
         try (var p = capture("git", "symbolic-ref", "--short", "HEAD")) {
             var res = await(p);

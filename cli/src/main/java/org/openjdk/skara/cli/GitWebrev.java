@@ -36,6 +36,9 @@ import java.util.stream.*;
 import java.util.regex.Pattern;
 
 public class GitWebrev {
+
+    public static final String EXPRESSION = "expression";
+
     private static void clearDirectory(Path directory) {
         try {
             Files.walk(directory)
@@ -69,6 +72,7 @@ public class GitWebrev {
         var message = "error: could not resolve reference '" + ref + "'";
         try {
             var hash = repo.resolve(ref);
+
             if (!hash.isPresent()) {
                 die(message);
             }
@@ -86,6 +90,11 @@ public class GitWebrev {
                   .describe("REV")
                   .helptext("Compare against a specified revision")
                   .optional(),
+            Option.shortcut("e")
+                   .fullname(EXPRESSION)
+                   .describe("REVEXP")
+                   .helptext("Compare against two revisions given by REVEXP")
+                   .optional(),
             Option.shortcut("o")
                   .fullname("output")
                   .describe("DIR")
@@ -134,6 +143,10 @@ public class GitWebrev {
 
         var parser = new ArgumentParser("git webrev", flags);
         var arguments = parser.parse(args);
+
+        if (arguments.contains("rev") && arguments.contains("expression")) {
+            die("revision and expression options can not be used together");
+        }
 
         var version = Version.fromManifest().orElse("unknown");
         if (arguments.contains("version")) {
@@ -184,6 +197,11 @@ public class GitWebrev {
             noOutgoing ?
                 resolve(repo, isMercurial ? "tip" : "HEAD") :
                 resolve(repo, isMercurial ? "min(outgoing())^" : "origin" + "/" + "master");
+
+        var hashPair = arguments.contains(EXPRESSION)
+                     ? repo.resolveExpression(arguments.get(EXPRESSION).asString()).orElseThrow(
+                         () -> new Error("Bad expression: " + arguments.get(EXPRESSION).asString()))
+                     : new Hash[] {null, rev};
 
         var issue = arguments.contains("cr") ? arguments.get("cr").asString() : null;
         if (issue != null && !issue.startsWith("http")) {
@@ -249,6 +267,6 @@ public class GitWebrev {
               .username(username)
               .issue(issue)
               .version(version)
-              .generate(rev);
+              .generate(hashPair[1], hashPair[0]);
     }
 }

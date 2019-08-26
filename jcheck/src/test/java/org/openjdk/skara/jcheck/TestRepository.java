@@ -166,6 +166,11 @@ class TestRepository implements ReadOnlyRepository {
         return Optional.empty();
     }
 
+    @Override
+    public Optional<Hash[]> resolveExpression(String ref) {
+        return Optional.empty();
+    }
+
     public Optional<String> username() throws IOException {
         return Optional.empty();
     }

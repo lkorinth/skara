@@ -188,6 +188,18 @@ public class HgRepository implements Repository {
     }
 
     @Override
+    public Optional<Hash[]> resolveExpression(String ref) {
+        try (var p = capture("hg", "log", "--rev=" + ref, "--template={node}\n")) {
+            var res = p.await();
+            return (res.status() == 0 && res.stdout().size() == 2)
+                ? Optional.of(new Hash[]{new Hash(res.stdout().get(0)), new Hash(res.stdout().get(1))})
+                : Optional.empty();
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
     public Commits commits() throws IOException {
         return commits(null, -1, false);
     }
